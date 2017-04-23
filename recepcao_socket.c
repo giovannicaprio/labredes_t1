@@ -16,6 +16,9 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
+#include <netinet/tcp.h> // header tcp
+#include <netinet/udp.h> // header udp
+
 #include <net/if.h>  //estrutura ifr
 #include <netinet/ether.h> //header ethernet
 #include <netinet/in.h> //definicao de protocolos
@@ -34,6 +37,9 @@
   int on;
   struct ifreq ifr;
   struct iphdr *ipheader;
+  struct tcphdr *tcpheader;
+  struct udphdr *udpheader;
+  struct icmphdr *icmpheader;
 
 int main(int argc,char *argv[])
 {
@@ -60,18 +66,18 @@ int main(int argc,char *argv[])
    		recv(sockd,(char *) &buff, sizeof(buff), 0x0);
 
 		// Ethernet
-		printf("Ethernet \n");
+		printf("-->Ethernet \n");
 		printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", buff[0],buff[1],buff[2],buff[3],buff[4],buff[5]);
 		printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n", buff[6],buff[7],buff[8],buff[9],buff[10],buff[11]);
 		printf("Type : %x%x \n", buff[12],buff[13]);
-		printf("------------------------\n");
 
-		//se for ip
-		if (buff[12] == 0x8 && buff[13] == 0x0) {
-			ipheader = (struct iphdr*)buff;
+		//IP
+		if (buff[12] == 0x8 && buff[13] == 0x00) {
+			// Header ip comeca no byte 14
+			ipheader = (struct iphdr*)&buff[14];
 
-			// TODO: falta campo flag aqui
-			printf("IPv4 \n");
+			// TODO: falta campo flags e tratar IPV6
+			printf("-->IPv4 \n");
 			printf("Version : %d \n", ipheader->version);
 			printf("IHL : %d \n", ipheader->ihl);
 			printf("Type of service %d \n", ipheader->tos);
@@ -84,12 +90,42 @@ int main(int argc,char *argv[])
 			printf("Source address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->saddr));
 			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->daddr));
 
-			//TCP
-			if (ipheader->protocol == 6) {
-				// printf("Source port : %d \n", );
+			switch(ipheader->protocol) {
+				case 6 : //TCP
+					// Header tcp comeca no byte 34
+					tcpheader = (struct tcphdr*)&buff[34];
+					printf("-->TCP \n");
+					printf("Source port : %d \n", tcpheader->source);
+					printf("Destination port : %d \n", tcpheader->dest);
+					printf("Sequence number : %d \n", tcpheader->seq);
+					printf("Acknowledgment number : %d \n", tcpheader->ack_seq);
+					printf("Window : %d \n", tcpheader->window);
+					printf("Checksum : %d \n", tcpheader->check);
+					printf("Urgent pointer : %d \n", tcpheader->urg_ptr);
+					break;
+				case 17 : // UDP
+					udpheader = (struct udphdr*)&buff[34];
+					printf("-->UDP \n");
+					printf("Source port : %d \n", udpheader->source);
+					printf("Destination port : %d \n", udpheader->dest);
+					printf("Length : %d \n", udpheader->len);
+					printf("Checksum : %d \n", udpheader->source);
+					break;
+				case 1 : // ICMP
+					icmpheader = (struct icmphdr*)&buff[34];
+					printf("-->ICMP \n");
+					printf("Type : %d \n", icmpheader->type);
+					printf("Code : %d \n", icmpheader->code);
+					printf("Checksum : %d \n", icmpheader->checksum);
+					break;
 			}
+		
+		}
+		// ARP
+		else if (buff[12] == 0x08 && buff[13] == 0x06) {
+
 		}
 
-		printf(" \n");
+		printf("------------------------\n\n");
 	}
 }	
