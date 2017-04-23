@@ -13,6 +13,9 @@
 /* Diretorios: net, netinet, linux contem os includes que descrevem */
 /* as estruturas de dados do header dos protocolos   	  	        */
 
+#include <netinet/ip.h>
+#include <netinet/ip_icmp.h>
+
 #include <net/if.h>  //estrutura ifr
 #include <netinet/ether.h> //header ethernet
 #include <netinet/in.h> //definicao de protocolos
@@ -25,11 +28,12 @@
 // Atencao!! Confira no /usr/include do seu sisop o nome correto
 // das estruturas de dados dos protocolos.
 
-  unsigned char buff1[BUFFSIZE]; // buffer de recepcao
+  unsigned char buff[BUFFSIZE]; // buffer de recepcao
 
   int sockd;
   int on;
   struct ifreq ifr;
+  struct iphdr *ipheader;
 
 int main(int argc,char *argv[])
 {
@@ -42,18 +46,50 @@ int main(int argc,char *argv[])
     }
 
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
-	strcpy(ifr.ifr_name, "enp4s0");
+	strcpy(ifr.ifr_name, "wlp3s0"); // TODO: TROCAO PARA INTERFACE CORRETA
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);
 
+	uint32_t s_ip;
+
 	// recepcao de pacotes
 	while (1) {
-   		recv(sockd,(char *) &buff1, sizeof(buff1), 0x0);
-		// impress�o do conteudo - exemplo Endereco Destino e Endereco Origem
-		printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", buff1[0],buff1[1],buff1[2],buff1[3],buff1[4],buff1[5]);
-		printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n\n", buff1[6],buff1[7],buff1[8],buff1[9],buff1[10],buff1[11]);
+   		recv(sockd,(char *) &buff, sizeof(buff), 0x0);
+
+		// Ethernet
+		printf("Ethernet \n");
+		printf("MAC Destino: %x:%x:%x:%x:%x:%x \n", buff[0],buff[1],buff[2],buff[3],buff[4],buff[5]);
+		printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n", buff[6],buff[7],buff[8],buff[9],buff[10],buff[11]);
+		printf("Type : %x%x \n", buff[12],buff[13]);
+		printf("------------------------\n");
+
+		//se for ip
+		if (buff[12] == 0x8 && buff[13] == 0x0) {
+			ipheader = (struct iphdr*)buff;
+
+			// TODO: falta campo flag aqui
+			printf("IPv4 \n");
+			printf("Version : %d \n", ipheader->version);
+			printf("IHL : %d \n", ipheader->ihl);
+			printf("Type of service %d \n", ipheader->tos);
+			printf("Total length : %d\n", ipheader->tot_len);
+			printf("Identification : %d \n", ipheader->id);
+			printf("Fragment Offset : %d \n", ipheader->frag_off);
+			printf("Ttl : %d\n", ipheader->ttl);
+			printf("Protocol : %d\n", ipheader->protocol);
+			printf("Checksum : %d\n", ipheader->check);
+			printf("Source address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->saddr));
+			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->daddr));
+
+			//TCP
+			if (ipheader->protocol == 6) {
+				// printf("Source port : %d \n", );
+			}
+		}
+
+		printf(" \n");
 	}
-}
+}	
