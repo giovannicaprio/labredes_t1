@@ -18,6 +18,9 @@
 
 #include <netinet/tcp.h> // header tcp
 #include <netinet/udp.h> // header udp
+#include <netinet/ip6.h> // ipv6 header
+
+#include <netinet/icmp6.h> // header icmpv6
 
 #include <net/if.h>  //estrutura ifr
 #include <netinet/ether.h> //header ethernet
@@ -37,9 +40,11 @@
   int on;
   struct ifreq ifr;
   struct iphdr *ipheader;
+  struct ip6_hdr *ip6header;
   struct tcphdr *tcpheader;
   struct udphdr *udpheader;
   struct icmphdr *icmpheader;
+  struct icmp6_hdr *icmp6header;
 
 int main(int argc,char *argv[])
 {
@@ -61,6 +66,8 @@ int main(int argc,char *argv[])
 
 	uint32_t s_ip;
 
+	int next_header;
+
 	// recepcao de pacotes
 	while (1) {
    		recv(sockd,(char *) &buff, sizeof(buff), 0x0);
@@ -71,7 +78,7 @@ int main(int argc,char *argv[])
 		printf("MAC Origem:  %x:%x:%x:%x:%x:%x \n", buff[6],buff[7],buff[8],buff[9],buff[10],buff[11]);
 		printf("Type : %x%x \n", buff[12],buff[13]);
 
-		//IP
+		//IPv4
 		if (buff[12] == 0x8 && buff[13] == 0x00) {
 			// Header ip comeca no byte 14
 			ipheader = (struct iphdr*)&buff[14];
@@ -120,6 +127,35 @@ int main(int argc,char *argv[])
 					break;
 			}
 		
+		}
+		//IPv6
+		else if (buff[12] == 0x86 && buff[13] == 0xdd) {
+			ip6header = (struct ip6_hdr*)&buff[14];
+
+			// TODO: ip6_vfc contem version e traffic class(separar)
+			printf("-->IPv6 \n");
+			printf("Version : %d \n", ip6header->ip6_vfc);
+			printf("Flow label : %d \n", ip6header->ip6_flow);
+			printf("Payload length : %d \n", ip6header->ip6_plen);
+			printf("Next header : %d \n", ip6header->ip6_nxt);
+			printf("Hoop limit : %d \n", ip6header->ip6_hlim);
+
+			printf("Source address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[22],buff[23],buff[24],buff[25],
+			buff[26],buff[27],buff[28],buff[29],buff[30],buff[31],buff[32],buff[33],buff[34],
+			buff[35],buff[36],buff[37]);
+			printf("Source address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[38],buff[39],buff[40],buff[41],
+			buff[42],buff[43],buff[44],buff[45],buff[46],buff[47],buff[48],buff[49],buff[50],
+			buff[51],buff[52],buff[53]);
+
+			// ICMPv6
+			if (ip6header->ip6_nxt == 58) {
+				icmp6header = (struct icmp6_hdr*)&buff[54];
+
+				printf("-->ICMPv6 \n");
+				printf("Type : %d \n", icmp6header->icmp6_type);
+				printf("Code : %d \n", icmp6header->icmp6_code);
+				printf("Checksum : %d \n", icmp6header->icmp6_cksum);
+			}
 		}
 		// ARP
 		else if (buff[12] == 0x08 && buff[13] == 0x06) {
