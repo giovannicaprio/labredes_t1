@@ -19,6 +19,7 @@
 #include <netinet/tcp.h> // header tcp
 #include <netinet/udp.h> // header udp
 #include <netinet/ip6.h> // ipv6 header
+#include <net/if_arp.h> // arp header
 
 #include <netinet/icmp6.h> // header icmpv6
 
@@ -44,7 +45,8 @@
   struct tcphdr *tcpheader;
   struct udphdr *udpheader;
   struct icmphdr *icmpheader;
-  struct icmp6_hdr *icmp6header;;
+  struct icmp6_hdr *icmp6header;
+  struct arphdr *arpheader;
   
   int totalPacotes;
   int countIPv4;
@@ -58,7 +60,6 @@
   int totaisRecepco[5];
 
   int maior (int vetor[]);
-
 
 int main(int argc,char *argv[])
 {
@@ -181,7 +182,7 @@ int main(int argc,char *argv[])
 			printf("Source address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[22],buff[23],buff[24],buff[25],
 			buff[26],buff[27],buff[28],buff[29],buff[30],buff[31],buff[32],buff[33],buff[34],
 			buff[35],buff[36],buff[37]);
-			printf("Source address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[38],buff[39],buff[40],buff[41],
+			printf("Destination address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[38],buff[39],buff[40],buff[41],
 			buff[42],buff[43],buff[44],buff[45],buff[46],buff[47],buff[48],buff[49],buff[50],
 			buff[51],buff[52],buff[53]);
 
@@ -198,7 +199,18 @@ int main(int argc,char *argv[])
 			}
 		}
 		// ARP
-		else if (buff[12] == 0x08 && buff[13] == 0x06) {
+		if (buff[12] == 0x08 && buff[13] == 0x06) {
+			arpheader = (struct arphdr*)&buff[14];
+			printf("-->ARP \n");
+			printf("Hardware address type : %d \n", arpheader->ar_hrd);
+			printf("Protocol address type : %d \n", arpheader->ar_pro);
+			printf("Hardware address length : %d \n", arpheader->ar_hln);
+			printf("Protocol address length : %d \n", arpheader->ar_pln);
+			printf("Operation : %x \n", buff[21]);
+			printf("Source hardware address: %x:%x:%x:%x:%x:%x \n", buff[22],buff[23],buff[24],buff[25],buff[26],buff[27]);
+			printf("Source address : %s\n", inet_ntoa(*(struct in_addr *)&buff[28]));
+			printf("Target hardware address: %x:%x:%x:%x:%x:%x \n", buff[32],buff[33],buff[34],buff[35],buff[36],buff[37]);
+			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&buff[38]));
 			countARP += 1;
             totalPacotes += +1;
 		}
