@@ -19,6 +19,7 @@
 #include <netinet/tcp.h> // header tcp
 #include <netinet/udp.h> // header udp
 #include <netinet/ip6.h> // ipv6 header
+#include <net/if_arp.h> // arp header
 
 #include <netinet/icmp6.h> // header icmpv6
 
@@ -44,7 +45,8 @@
   struct tcphdr *tcpheader;
   struct udphdr *udpheader;
   struct icmphdr *icmpheader;
-  struct icmp6_hdr *icmp6header;;
+  struct icmp6_hdr *icmp6header;
+  struct arphdr *arpheader;
   
   int totalPacotes;
   int countIPv4;
@@ -78,6 +80,7 @@
   int maiorIPV4(struct entidadeIP array[]);
   int maiorIPV6(struct entidadeIP array[]);
 
+  char * application_protocol(int protocol);
 
   struct entidadeIP
   {
@@ -138,7 +141,7 @@ int main(int argc,char *argv[])
 		printf("Type : %x%x \n", buff[12],buff[13]);
 
 		//IPv4
-		if (buff[12] == 0x8 && buff[13] == 0x00) {
+		if (buff[12] == 0x08 && buff[13] == 0x00) {
 			// Header ip comeca no byte 14
 			ipheader = (struct iphdr*)&buff[14];
 
@@ -202,7 +205,7 @@ int main(int argc,char *argv[])
 					tcpheader = (struct tcphdr*)&buff[34];
 					printf("-->TCP \n");
 					printf("Source port : %d \n", tcpheader->source);
-					printf("Destination port : %d \n", tcpheader->dest);
+					printf("Destination port : %d %s \n", tcpheader->dest, application_protocol(tcpheader->dest));
 					printf("Sequence number : %d \n", tcpheader->seq);
 					printf("Acknowledgment number : %d \n", tcpheader->ack_seq);
 					printf("Window : %d \n", tcpheader->window);
@@ -313,6 +316,17 @@ int main(int argc,char *argv[])
 		}
 		// ARP
 		else if (buff[12] == 0x08 && buff[13] == 0x06) {
+			arpheader = (struct arphdr*)&buff[14];
+			printf("-->ARP \n");
+			printf("Hardware address type : %d \n", arpheader->ar_hrd);
+			printf("Protocol address type : %d \n", arpheader->ar_pro);
+			printf("Hardware address length : %d \n", arpheader->ar_hln);
+			printf("Protocol address length : %d \n", arpheader->ar_pln);
+			printf("Operation : %x \n", buff[21]);
+			printf("Source hardware address: %x:%x:%x:%x:%x:%x \n", buff[22],buff[23],buff[24],buff[25],buff[26],buff[27]);
+			printf("Source address : %s\n", inet_ntoa(*(struct in_addr *)&buff[28]));
+			printf("Target hardware address: %x:%x:%x:%x:%x:%x \n", buff[32],buff[33],buff[34],buff[35],buff[36],buff[37]);
+			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&buff[38]));
 			countARP += 1;
             totalPacotes += +1;
 		}
@@ -401,4 +415,75 @@ int maiorIPV6(struct entidadeIP array[])
   return nomeMaior;
 }
 
+char* application_protocol(int protocol)
+{
+	char *p;
 
+	switch(protocol) {
+		case 7 :
+			p = "echo";
+			break;
+		case 110 :
+			p = "pop3";
+		 	break;
+		case 19 : 
+			p = "chargen";
+			break;
+		case 111 : 
+			p = "sunrpc";
+			break;
+		case 20 : 
+			p = "ftp-data";
+			break;
+		case 119 : 
+			p = "nntp";
+			break;
+		case 21 :
+			p =  "ftp-control";
+			break;
+		case 139 : 
+			p = "netbios-ssn";
+			break;
+		case 22 :
+			p = "ssh";
+			break;
+		case 143 :
+			p = "imap";
+			break;
+		case 23 : 
+			p = "telnet";
+			break;
+		case 179 :
+			p = "bgp";
+			break;
+		case 25 :
+			p = "smtp";
+			break;
+        case 389 : 
+			p = "ldap";
+			break;
+		case 53 : 
+			p = "domain";
+			break;
+		case 443 :
+			p = "https";
+			break;
+		case 79 :
+			p = "finger";
+			break;
+		case 80 : 
+			p= "http";
+			break;
+		case 445 :
+			p = "microsoft-ds";
+			break;
+		case 1080 :
+			p = "socks";
+			break;
+		default :
+			p = "";
+			break;
+	}
+
+	return p;
+}

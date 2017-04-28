@@ -10,8 +10,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <linux/types.h>
-
 /* Diretorios: net, netinet, linux contem os includes que descrevem */
 /* as estruturas de dados do header dos protocolos   	  	        */
 
@@ -91,7 +89,7 @@ int main(int argc,char *argv[])
     }
 
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
-	strcpy(ifr.ifr_name, "wlp3s0"); // TODO: TROCAO PARA INTERFACE CORRETA
+	strcpy(ifr.ifr_name, "enp3s0"); // TODO: TROCAO PARA INTERFACE CORRETA
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
