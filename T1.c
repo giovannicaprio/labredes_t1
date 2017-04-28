@@ -10,6 +10,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <linux/types.h>
+
 /* Diretorios: net, netinet, linux contem os includes que descrevem */
 /* as estruturas de dados do header dos protocolos   	  	        */
 
@@ -60,6 +62,7 @@
   int totaisRecepco[5];
 
   int maior (int vetor[]);
+  char * application_protocol(int protocol);
 
 int main(int argc,char *argv[])
 {
@@ -88,7 +91,7 @@ int main(int argc,char *argv[])
     }
 
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
-	strcpy(ifr.ifr_name, "eno1"); // TODO: TROCAO PARA INTERFACE CORRETA
+	strcpy(ifr.ifr_name, "wlp3s0"); // TODO: TROCAO PARA INTERFACE CORRETA
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
@@ -98,7 +101,7 @@ int main(int argc,char *argv[])
 	uint32_t s_ip;
 
 	int next_header;
-
+	
 	// recepcao de pacotes
 	while (1) {
    		recv(sockd,(char *) &buff, sizeof(buff), 0x0);
@@ -110,7 +113,7 @@ int main(int argc,char *argv[])
 		printf("Type : %x%x \n", buff[12],buff[13]);
 
 		//IPv4
-		if (buff[12] == 0x8 && buff[13] == 0x00) {
+		if (buff[12] == 0x08 && buff[13] == 0x00) {
 			// Header ip comeca no byte 14
 			ipheader = (struct iphdr*)&buff[14];
 
@@ -135,7 +138,7 @@ int main(int argc,char *argv[])
 					tcpheader = (struct tcphdr*)&buff[34];
 					printf("-->TCP \n");
 					printf("Source port : %d \n", tcpheader->source);
-					printf("Destination port : %d \n", tcpheader->dest);
+					printf("Destination port : %d %s \n", tcpheader->dest, application_protocol(tcpheader->dest));
 					printf("Sequence number : %d \n", tcpheader->seq);
 					printf("Acknowledgment number : %d \n", tcpheader->ack_seq);
 					printf("Window : %d \n", tcpheader->window);
@@ -246,4 +249,77 @@ int maior(int vetor[])
     }
     return maior;
 
+}
+
+char* application_protocol(int protocol)
+{
+	char *p;
+
+	switch(protocol) {
+		case 7 :
+			p = "echo";
+			break;
+		case 110 :
+			p = "pop3";
+		 	break;
+		case 19 : 
+			p = "chargen";
+			break;
+		case 111 : 
+			p = "sunrpc";
+			break;
+		case 20 : 
+			p = "ftp-data";
+			break;
+		case 119 : 
+			p = "nntp";
+			break;
+		case 21 :
+			p =  "ftp-control";
+			break;
+		case 139 : 
+			p = "netbios-ssn";
+			break;
+		case 22 :
+			p = "ssh";
+			break;
+		case 143 :
+			p = "imap";
+			break;
+		case 23 : 
+			p = "telnet";
+			break;
+		case 179 :
+			p = "bgp";
+			break;
+		case 25 :
+			p = "smtp";
+			break;
+        case 389 : 
+			p = "ldap";
+			break;
+		case 53 : 
+			p = "domain";
+			break;
+		case 443 :
+			p = "https";
+			break;
+		case 79 :
+			p = "finger";
+			break;
+		case 80 : 
+			p= "http";
+			break;
+		case 445 :
+			p = "microsoft-ds";
+			break;
+		case 1080 :
+			p = "socks";
+			break;
+		default :
+			p = "";
+			break;
+	}
+
+	return p;
 }
