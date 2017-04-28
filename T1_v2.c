@@ -54,10 +54,12 @@
   int countICMP;
   int countICMPv6;
   int countARP;
+  
   int totaisTransmissao[5];
   int totaisRecepco[5];
 
-  int maior (int vetor[]);
+  int maiorTransmissao (int vetor[]);
+  int maiorRecepcao (int vetor[]);
 
 
 int main(int argc,char *argv[])
@@ -76,6 +78,9 @@ int main(int argc,char *argv[])
 
     totaisRecepco[0] = countICMP;
     totaisRecepco[1] = countICMPv6;
+
+    char nomesTransmissao[][10] = { "TCP", "UDP" };
+    char nomesRecepcao[][10] = { "ICMP", "ICMPv6" };
 
 
     /* Criacao do socket. Todos os pacotes devem ser construidos a partir do protocolo Ethernet. */
@@ -219,19 +224,38 @@ int main(int argc,char *argv[])
 
 		printf("-------------------------------------------------------\n\n");
 
-   		printf("Protocolo de aplicação mais usado nas transmissões: %i \n", maior(totaisTransmissao));
-		printf("Protocolo de aplicação mais usado nas recepções: %i \n", maior(totaisRecepco));
+		printf("Protocolo de aplicação mais usado nas transmissões: %s \n", nomesTransmissao[maiorTransmissao(totaisTransmissao)]);
+		printf("Protocolo de aplicação mais usado nas recepções: %s \n", nomesRecepcao[maiorRecepcao(totaisRecepco)]);
+
         printf("Endereço IP da máquina que mais transmitiu pacotes: %s \n");
 		printf("Endereço IP da máquina que mais recebeu pacote: %i \n");
 }
 
-int maior(int vetor[])
+int maiorTransmissao(int vetor[])
 {
     int maior  = vetor[0];
-    for(int i = 1; i <sizeof(vetor);i++){
+    int idMaior = 0;
+    size_t i = 0;
+	
+	for(i = 0; i < sizeof(vetor) / sizeof(vetor[0]);i++){
+        if(vetor[i] > maior){
+            maior = vetor[i]; 
+            idMaior = i;
+        } 
+    }
+    return idMaior;
+
+}
+
+int maiorRecepcao(int vetor[])
+{
+    int maior  = vetor[0];
+    int idMaior = 0;
+    size_t i = 0;
+	for(i = 0; i < sizeof(vetor) / sizeof(vetor[0]);i++){
         if(vetor[i] > maior)
             maior = vetor[i]; 
+            idMaior = i; 
     }
-    return maior;
-
+    return idMaior;
 }
