@@ -37,6 +37,12 @@
 
   unsigned char buff[BUFFSIZE]; // buffer de recepcao
 
+  struct entidadeIP
+  {
+	char *nome;
+	int qtd;
+  };
+
   int sockd;
   int on;
   struct ifreq ifr;
@@ -63,31 +69,21 @@
   int totaisTransmissao[5];
   int totaisRecepco[5];
   
-  struct entidadeIP sendersIPV4[];
-  struct entidadeIP receiversIPV4[];
+  struct entidadeIP sendersIPV4[999];
+  struct entidadeIP receiversIPV4[999];
 
-  struct entidadeIP sendersIPV6[];
-  struct entidadeIP receiversIPV6[];
-
-  int totaisArrayIpv4[];
-  int totaisArrayIpv6[];
+  struct entidadeIP sendersIPV6[999];
+  struct entidadeIP receiversIPV6[999];
 
   //metodos para retornar os nomes dos protocolos mais usados
   int maiorTransmissao (int vetor[]);
   int maiorRecepcao (int vetor[]);
 
   //metodos para retornar os nomes dos protocolos ips mais usados 
-  int maiorIPV4(struct entidadeIP array[]);
-  int maiorIPV6(struct entidadeIP array[]);
+  char * maiorIPV4(struct entidadeIP array[]);
+  char * maiorIPV6(struct entidadeIP array[]);
 
   char * application_protocol(int protocol);
-
-  struct entidadeIP
-  {
-	int nome;
-	int qtd;
-  };
-
 
 int main(int argc,char *argv[])
 {
@@ -119,19 +115,16 @@ int main(int argc,char *argv[])
     }
 
 	// O procedimento abaixo eh utilizado para "setar" a interface em modo promiscuo
-	strcpy(ifr.ifr_name, "eno1"); // TODO: TROCAO PARA INTERFACE CORRETA
+	strcpy(ifr.ifr_name, "enp4s0"); // TODO: TROCAO PARA INTERFACE CORRETA
 	if(ioctl(sockd, SIOCGIFINDEX, &ifr) < 0)
 		printf("erro no ioctl!");
 	ioctl(sockd, SIOCGIFFLAGS, &ifr);
 	ifr.ifr_flags |= IFF_PROMISC;
 	ioctl(sockd, SIOCSIFFLAGS, &ifr);
 
-	uint32_t s_ip;
-
-	int next_header;
-
+	int executions = 0;
 	// recepcao de pacotes
-	while (1) {
+	while (executions < 20) {
    		recv(sockd,(char *) &buff, sizeof(buff), 0x0);
 
 		// Ethernet
@@ -158,12 +151,13 @@ int main(int argc,char *argv[])
 			printf("Checksum : %d\n", ipheader->check);
 			printf("Source address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->saddr));
 			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->daddr));
-            countIPv4 +=countIPv4;
+            countIPv4 += 1;
 
             //cria o objeto para o ip4 e coloca no array sem duplicar
             //FIQUEI com uma pequena duvida 
-            struct entidadeIPV sIPV4;
-			     sIPV4.nome = &ipheader->saddr;
+            struct entidadeIP sIPV4;
+			
+				sIPV4.nome = inet_ntoa(*(struct in_addr *)&ipheader->saddr);
 
 			    //verificador para informar se depois do loop foi incrementado o que se tem
 			    // se 0 add novo
@@ -180,8 +174,8 @@ int main(int argc,char *argv[])
 			   	 	sendersIPV4[globalIPV4] = sIPV4;
 			  	}
 
-			 struct entidadeIPV rIPV4;
-			     rIPV4.nome = &ipheader->daddr;
+			 struct entidadeIP rIPV4;
+			     rIPV4.nome = inet_ntoa(*(struct in_addr *)&ipheader->daddr);
 			    //verificador para informar se depois do loop foi incrementado o que se tem
 			    // se 0 add novo
 			    int verificadorReceiver = 0;
@@ -234,7 +228,7 @@ int main(int argc,char *argv[])
 					printf("Checksum : %d \n", icmpheader->checksum);
 					break;
 			}
-		
+		executions++;
 		}
 		//IPv6
 		else if (buff[12] == 0x86 && buff[13] == 0xdd) {
@@ -252,15 +246,12 @@ int main(int argc,char *argv[])
 			printf("Source address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[22],buff[23],buff[24],buff[25],
 			buff[26],buff[27],buff[28],buff[29],buff[30],buff[31],buff[32],buff[33],buff[34],
 			buff[35],buff[36],buff[37]);
-			printf("Source address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[38],buff[39],buff[40],buff[41],
+			printf("Destination address : %x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x:%x%x \n", buff[38],buff[39],buff[40],buff[41],
 			buff[42],buff[43],buff[44],buff[45],buff[46],buff[47],buff[48],buff[49],buff[50],
 			buff[51],buff[52],buff[53]);
 
-
-            //TO DO
-            //n entendi como tu pega o source add e o destination aqui botei uma caralhada, nao me parece que vai bombar
-            struct entidadeIPV sIPV6;
-			     sIPV6.nome = buff[22],buff[23],buff[24],buff[25],
+            struct entidadeIP sIPV6;
+			sIPV6.nome = buff[22],buff[23],buff[24],buff[25],
 			buff[26],buff[27],buff[28],buff[29],buff[30],buff[31],buff[32],buff[33],buff[34],
 			buff[35],buff[36],buff[37];
 
@@ -280,7 +271,7 @@ int main(int argc,char *argv[])
 
 			  	}
 
-			 struct entidadeIPV rIPV6;
+			 struct entidadeIP rIPV6;
 			     rIPV6.nome = buff[38],buff[39],buff[40],buff[41],
 			buff[42],buff[43],buff[44],buff[45],buff[46],buff[47],buff[48],buff[49],buff[50],
 			buff[51],buff[52],buff[53];
@@ -291,10 +282,10 @@ int main(int argc,char *argv[])
 			      if(receiversIPV6[i].nome == rIPV6.nome){
 			        //ja tem na coleção, apenas incrementa a qtd
 			        receiversIPV6[i].qtd += 1;
-			        verificadorSender += 1;
+			        verificadorSender6 += 1;
 			      } 
 			  	}
-			  	if(verificadorReceiver == 0){ //add novo no array
+			  	if(verificadorReceiver6 == 0){ //add novo no array
 			  		rIPV6.qtd = 1;
 			   	 	receiversIPV6[globalIPV6] = rIPV6;
 			  	}  	
@@ -313,6 +304,7 @@ int main(int argc,char *argv[])
 				countICMPv6 += 1;
                 totalPacotes += +1;
 			}
+			executions++;
 		}
 		// ARP
 		else if (buff[12] == 0x08 && buff[13] == 0x06) {
@@ -329,6 +321,8 @@ int main(int argc,char *argv[])
 			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&buff[38]));
 			countARP += 1;
             totalPacotes += +1;
+
+			executions++;
 		}
 
 		printf("-------------------------------------------------------\n\n");
@@ -350,11 +344,11 @@ int main(int argc,char *argv[])
 		printf("Protocolo de aplicação mais usado nas transmissões: %s \n", nomesTransmissao[maiorTransmissao(totaisTransmissao)]);
 		printf("Protocolo de aplicação mais usado nas recepções: %s \n", nomesRecepcao[maiorRecepcao(totaisRecepco)]);
 
-        printf("Endereço IPv4 da máquina que mais transmitiu pacotes: %i \n", maiorIPV4(sendersIPV4));
-		printf("Endereço IPv4 da máquina que mais recebeu pacote: %i \n", maiorIPV4(receiversIPV4));
+        printf("Endereço IPv4 da máquina que mais transmitiu pacotes: %s \n", maiorIPV4(sendersIPV4));
+		printf("Endereço IPv4 da máquina que mais recebeu pacote: %s \n", maiorIPV4(receiversIPV4));
 
-		printf("Endereço IPv6 da máquina que mais transmitiu pacotes: %i \n", maiorIPV6(sendersIPV6));
-		printf("Endereço IPv6 da máquina que mais recebeu pacote: %i \n", maiorIPV6(receiversIPV6));
+		printf("Endereço IPv6 da máquina que mais transmitiu pacotes: %c \n", maiorIPV6(sendersIPV6));
+		printf("Endereço IPv6 da máquina que mais recebeu pacote: %c \n", maiorIPV6(receiversIPV6));
 }
 
 int maiorTransmissao(int vetor[])
@@ -386,11 +380,11 @@ int maiorRecepcao(int vetor[])
     return idMaior;
 }
 
-int maiorIPV4(struct entidadeIP array[])
+char* maiorIPV4(struct entidadeIP array[])
 {
 
   int maior = array[0].qtd;
-  int nomeMaior = array[0].nome;
+  char *nomeMaior = array[0].nome;
   for(int i = 0; i <globalIPV4; i++){
     if(array[i].qtd > maior){
       maior = array[i].qtd;
@@ -401,11 +395,11 @@ int maiorIPV4(struct entidadeIP array[])
   return nomeMaior;
 }
 
-int maiorIPV6(struct entidadeIP array[])
+char* maiorIPV6(struct entidadeIP array[])
 {
 
   int maior = array[0].qtd;
-  int nomeMaior = array[0].nome;
+  char * nomeMaior = array[0].nome;
   for(int i = 0; i <globalIPV6; i++){
     if(array[i].qtd > maior){
       maior = array[i].qtd;
