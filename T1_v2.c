@@ -54,12 +54,36 @@
   int countICMP;
   int countICMPv6;
   int countARP;
+
+  int globalIPV4 = 0;
+  int globalIPV6 = 0;
   
   int totaisTransmissao[5];
   int totaisRecepco[5];
+  
+  struct entidadeIP sendersIPV4[];
+  struct entidadeIP receiversIPV4[];
 
+  struct entidadeIP sendersIPV6[];
+  struct entidadeIP receiversIPV6[];
+
+  int totaisArrayIpv4[];
+  int totaisArrayIpv6[];
+
+  //metodos para retornar os nomes dos protocolos mais usados
   int maiorTransmissao (int vetor[]);
   int maiorRecepcao (int vetor[]);
+
+  //metodos para retornar os nomes dos protocolos ips mais usados 
+  int maiorIPV4(struct entidadeIP array[]);
+  int maiorIPV6(struct entidadeIP array[]);
+
+
+  struct entidadeIP
+  {
+	int nome;
+	int qtd;
+  };
 
 
 int main(int argc,char *argv[])
@@ -133,6 +157,45 @@ int main(int argc,char *argv[])
 			printf("Destination address : %s\n", inet_ntoa(*(struct in_addr *)&ipheader->daddr));
             countIPv4 +=countIPv4;
 
+            //cria o objeto para o ip4 e coloca no array sem duplicar
+            //FIQUEI com uma pequena duvida 
+            struct entidadeIPV sIPV4;
+			     sIPV4.nome = &ipheader->saddr;
+
+			    //verificador para informar se depois do loop foi incrementado o que se tem
+			    // se 0 add novo
+			    int verificadorSender = 0;
+			    for(int i = 0; i <globalIPV4 ; i++ ){
+			      if(sendersIPV4[i].nome == sIPV4.nome){
+			        //ja tem na coleção, apenas incrementa a qtd
+			        sendersIPV4[i].qtd += 1;
+			        verificadorSender += 1;
+			      } 
+			  	}
+			  	if(verificadorSender == 0){ //add novo no array
+			  		sIPV4.qtd = 1;
+			   	 	sendersIPV4[globalIPV4] = sIPV4;
+			  	}
+
+			 struct entidadeIPV rIPV4;
+			     rIPV4.nome = &ipheader->daddr;
+			    //verificador para informar se depois do loop foi incrementado o que se tem
+			    // se 0 add novo
+			    int verificadorReceiver = 0;
+			    for(int i = 0; i <globalIPV4 ; i++ ){
+			      if(receiversIPV4[i].nome == rIPV4.nome){
+			        //ja tem na coleção, apenas incrementa a qtd
+			        receiversIPV4[i].qtd += 1;
+			        verificadorReceiver += 1;
+			      } 
+			  	}
+			  	if(verificadorReceiver == 0){ //add novo no array
+			  		rIPV4.qtd = 1;
+			   	 	receiversIPV4[globalIPV4] = rIPV4;
+			  	}  	
+			     
+			    globalIPV4 += 1;
+
 			switch(ipheader->protocol) {
 				case 6 : //TCP
 					// Header tcp comeca no byte 34
@@ -190,6 +253,52 @@ int main(int argc,char *argv[])
 			buff[42],buff[43],buff[44],buff[45],buff[46],buff[47],buff[48],buff[49],buff[50],
 			buff[51],buff[52],buff[53]);
 
+
+            //TO DO
+            //n entendi como tu pega o source add e o destination aqui botei uma caralhada, nao me parece que vai bombar
+            struct entidadeIPV sIPV6;
+			     sIPV6.nome = buff[22],buff[23],buff[24],buff[25],
+			buff[26],buff[27],buff[28],buff[29],buff[30],buff[31],buff[32],buff[33],buff[34],
+			buff[35],buff[36],buff[37];
+
+			    //verificador para informar se depois do loop foi incrementado o que se tem
+			    // se 0 add novo
+			    int verificadorSender6 = 0;
+			    for(int i = 0; i <globalIPV6 ; i++ ){
+			      if(sendersIPV4[i].nome == sIPV6.nome){
+			        //ja tem na coleção, apenas incrementa a qtd
+			        sendersIPV6[i].qtd += 1;
+			        verificadorSender6 += 1;
+			      } 
+			  	}
+			  	if(verificadorSender6 == 0){ //add novo no array
+			  		sIPV6.qtd = 1;
+			     	sendersIPV6[globalIPV6] = sIPV6;
+
+			  	}
+
+			 struct entidadeIPV rIPV6;
+			     rIPV6.nome = buff[38],buff[39],buff[40],buff[41],
+			buff[42],buff[43],buff[44],buff[45],buff[46],buff[47],buff[48],buff[49],buff[50],
+			buff[51],buff[52],buff[53];
+			    //verificador para informar se depois do loop foi incrementado o que se tem
+			    // se 0 add novo
+			    int verificadorReceiver6 = 0;
+			    for(int i = 0; i <globalIPV6 ; i++ ){
+			      if(receiversIPV6[i].nome == rIPV6.nome){
+			        //ja tem na coleção, apenas incrementa a qtd
+			        receiversIPV6[i].qtd += 1;
+			        verificadorSender += 1;
+			      } 
+			  	}
+			  	if(verificadorReceiver == 0){ //add novo no array
+			  		rIPV6.qtd = 1;
+			   	 	receiversIPV6[globalIPV6] = rIPV6;
+			  	}  	
+			     			     
+				globalIPV6 += 1;
+
+
 			// ICMPv6
 			if (ip6header->ip6_nxt == 58) {
 				icmp6header = (struct icmp6_hdr*)&buff[54];
@@ -227,8 +336,11 @@ int main(int argc,char *argv[])
 		printf("Protocolo de aplicação mais usado nas transmissões: %s \n", nomesTransmissao[maiorTransmissao(totaisTransmissao)]);
 		printf("Protocolo de aplicação mais usado nas recepções: %s \n", nomesRecepcao[maiorRecepcao(totaisRecepco)]);
 
-        printf("Endereço IP da máquina que mais transmitiu pacotes: %s \n");
-		printf("Endereço IP da máquina que mais recebeu pacote: %i \n");
+        printf("Endereço IPv4 da máquina que mais transmitiu pacotes: %i \n", maiorIPV4(sendersIPV4));
+		printf("Endereço IPv4 da máquina que mais recebeu pacote: %i \n", maiorIPV4(receiversIPV4));
+
+		printf("Endereço IPv6 da máquina que mais transmitiu pacotes: %i \n", maiorIPV6(sendersIPV6));
+		printf("Endereço IPv6 da máquina que mais recebeu pacote: %i \n", maiorIPV6(receiversIPV6));
 }
 
 int maiorTransmissao(int vetor[])
@@ -259,3 +371,34 @@ int maiorRecepcao(int vetor[])
     }
     return idMaior;
 }
+
+int maiorIPV4(struct entidadeIP array[])
+{
+
+  int maior = array[0].qtd;
+  int nomeMaior = array[0].nome;
+  for(int i = 0; i <globalIPV4; i++){
+    if(array[i].qtd > maior){
+      maior = array[i].qtd;
+      nomeMaior = array[i].nome;
+    }   
+  }
+
+  return nomeMaior;
+}
+
+int maiorIPV6(struct entidadeIP array[])
+{
+
+  int maior = array[0].qtd;
+  int nomeMaior = array[0].nome;
+  for(int i = 0; i <globalIPV6; i++){
+    if(array[i].qtd > maior){
+      maior = array[i].qtd;
+      nomeMaior = array[i].nome;
+    }   
+  }
+  return nomeMaior;
+}
+
+
